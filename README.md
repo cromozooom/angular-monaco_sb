@@ -1,3 +1,5 @@
-# angular-monaco_sb
+## Angular monaco
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/cromozooom/angular-monaco_sb)
+# Getting started
+
+run `npm i --legacy-peer-deps`
