@@ -2,6 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import * as monaco from 'monaco-editor';
 
+type Field = {
+  name: string;
+  schemaName: string;
+  value: string;
+  type?: string;
+};
+
 @Component({
   selector: 'app-text-format',
   standalone: true,
@@ -27413,7 +27420,6 @@ export class TextFormatComponent implements OnInit {
       schemaName: 'wdx_clientjourneystage',
       value: 'wdx_clientjourneystage',
     },
-    { name: null, schemaName: null, value: null },
     {
       name: 'DYNAMIC_userroles',
       schemaName: 'DYNAMIC_userroles',
@@ -27430,7 +27436,7 @@ export class TextFormatComponent implements OnInit {
       schemaName: 'wdx_amldocumentproofnotes',
       value: 'wdx_amldocumentproofnotes',
     },
-    { name: null, schemaName: null, value: null },
+
     {
       name: 'wdx_clientjourneystage',
       schemaName: 'wdx_clientjourneystage',
@@ -27451,7 +27457,7 @@ export class TextFormatComponent implements OnInit {
       schemaName: 'wdx_xdwfield{wdx_contactid}.wdx_lostcomments',
       value: 'wdx_xdwfield{wdx_contactid}.wdx_lostcomments',
     },
-    { name: null, schemaName: null, value: null },
+
     {
       name: 'DYNAMIC_ContactAddressesValid',
       schemaName: 'DYNAMIC_ContactAddressesValid',
@@ -27488,10 +27494,15 @@ export class TextFormatComponent implements OnInit {
       value: 'ContactAddresses',
     },
   ];
+  allFields: any = [];
 
   private currentDecorations: string[] = []; // Track current decorations
 
   ngOnInit(): void {
+    this.allFields = [
+      ...this.fieldsValidWithData,
+      ...this.otherFieldsValidWithData,
+    ];
     this.registerCustomLanguage();
     this.registerHoverProvider();
     this.registerCompletionProvider();
@@ -27627,12 +27638,13 @@ export class TextFormatComponent implements OnInit {
       triggerCharacters: ["'"], // Trigger suggestions when typing a single quote
       provideCompletionItems: (model, position) => {
         const lineContent = model.getLineContent(position.lineNumber);
-        const regex = /GET\('([^']*)$/; // Match GET('...') up to the cursor position
+        const regex = /GET\('([^']*)'?/g; // Match GET('...') up to the cursor position
         const match = lineContent.match(regex);
 
         if (match) {
-          // Generate suggestions from fieldsValidWIthData
-          const suggestions = this.fieldsValidWithData.map((field: any) => ({
+          // Generate suggestions from fieldsValidWithData
+          // const suggestions = this.fieldsValidWithData.map((field: any) => ({
+          const suggestions = this.allFields.map((field: any) => ({
             label: field.name,
             kind: monaco.languages.CompletionItemKind.Variable, // Suggestion type
             insertText: field.name, // Text to insert
@@ -27642,6 +27654,7 @@ export class TextFormatComponent implements OnInit {
           return { suggestions };
         }
 
+        return null;
         return { suggestions: [] }; // No suggestions if not inside GET('')
       },
     });
@@ -27649,7 +27662,7 @@ export class TextFormatComponent implements OnInit {
 
   initializeEditor(): void {
     this.editor = monaco.editor.create(this.editorContainer.nativeElement, {
-      value: ` ( GET('wdx_internalid')!=null&& ( GET('wdx_reviewtype').indexOf('Trust')>-1||GET('SPX_DYNAMIC_clientcategory').indexOf('Corporation')>-1 ) ) && ( GET('DYNAMIC_servicetypes')==null||GET('DYNAMIC_servicetypes').indexOf('Financial Planning Transactional (Insurance)')==-1 ) `,
+      value: ` ( GET('wdx_internalid')!=null&& ( GET('wdx_reviewtype').indexOf('Trust')>-1||GET('SPX_DYNAMIC_clientcategory').indexOf('Corporation')>-1 ) ) && ( GET('DYNAMIC_servicetypes')==null||GET('DYNAMIC_servicetypes').indexOf('Financial Planning Transactional (Insurance)')==-1 ) GET('')`,
       language: 'customLanguage',
       theme: 'customTheme',
       wordWrap: 'on',
