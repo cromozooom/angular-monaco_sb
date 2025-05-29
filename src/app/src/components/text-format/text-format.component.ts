@@ -27501,18 +27501,23 @@ export class TextFormatComponent implements OnInit, OnDestroy {
   ];
   allFields: any = [];
 
-  allowedPrefixes = ['GET', 'PUT', 'SOLOPX'];
+  allowedPrefixes = ['SOLOPX', 'GET', 'PUT', 'ANDMORE'];
   private currentDecorations: string[] = []; // Track current decorations
   private resizeObserver!: () => void;
   private editorInstance!: monaco.editor.IStandaloneCodeEditor;
   ngOnInit(): void {
-    this.allFields = [
+    const combinedFields = [
       ...this.fieldsValidWithData,
       ...this.otherFieldsValidWithData,
     ];
+    // Remove duplicates by name - keep the first occurrence
+    this.allFields = combinedFields.filter(
+      (field, index, self) =>
+        index === self.findIndex((f) => f.name === field.name)
+    );
     this.registerCustomLanguage();
-    this.registerHoverProvider();
     this.registerCompletionProvider();
+    this.registerHoverProvider();
     // Add a resize event listener
     this.resizeObserver = () => {
       this.editorInstance.layout();
@@ -27656,109 +27661,56 @@ export class TextFormatComponent implements OnInit, OnDestroy {
       },
     });
   }
+
   registerCompletionProvider(): void {
     monaco.languages.registerCompletionItemProvider('customLanguage', {
-      triggerCharacters: ["'", ' '], // Trigger on quote and space
+      triggerCharacters: ["'", ' ', '\t'],
       provideCompletionItems: (model, position) => {
         const lineContent = model.getLineContent(position.lineNumber);
         const textBeforeCursor = lineContent.substring(0, position.column - 1);
 
-        // Check if cursor is inside quotes after a prefix
-        const prefixPattern = this.allowedPrefixes.join('|');
-        const insideQuotesRegex = new RegExp(
-          `(${prefixPattern})\\('([^']*)'?$`
-        );
-        const insideQuotesMatch = textBeforeCursor.match(insideQuotesRegex);
+        // Count quotes before cursor - if odd number, we're inside quotes
+        const quoteCount = (textBeforeCursor.match(/'/g) || []).length;
+        const isInsideQuotes = quoteCount % 2 === 1;
 
-        if (insideQuotesMatch) {
-          // User is typing inside quotes - show field suggestions
+        if (isInsideQuotes) {
+          console.log('Inside quotes detected'); // Debug log
           const suggestions = this.allFields.map((field: any) => ({
             label: field.name,
             kind: monaco.languages.CompletionItemKind.Variable,
             insertText: field.name,
-            detail: field.value,
-            documentation: `Schema: ${field.schemaName}`,
+            detail: field.value || '',
+            documentation: `Schema: ${field.schemaName || ''}`,
+            range: new monaco.Range(
+              position.lineNumber,
+              position.column,
+              position.lineNumber,
+              position.column
+            ),
           }));
 
           return { suggestions };
         }
 
-        // Check if we should show prefix suggestions
-        // This covers cases like: empty line, after space, after operators, etc.
-        const shouldShowPrefixes = /(\s|^|[^a-zA-Z0-9_])$/.test(
-          textBeforeCursor
-        );
+        // Default - show prefix suggestions
+        console.log('Showing prefix suggestions'); // Debug log
+        const prefixSuggestions = this.allowedPrefixes.map((prefix) => ({
+          label: prefix,
+          kind: monaco.languages.CompletionItemKind.Function,
+          insertText: `${prefix}('$1')`,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: `${prefix} function`,
+          documentation: `Insert ${prefix}() function with field parameter`,
+          range: new monaco.Range(
+            position.lineNumber,
+            position.column,
+            position.lineNumber,
+            position.column
+          ),
+        }));
 
-        if (shouldShowPrefixes) {
-          // Show prefix suggestions (GET, PUT, SOLOPX)
-          const prefixSuggestions = this.allowedPrefixes.map((prefix) => ({
-            label: prefix,
-            kind: monaco.languages.CompletionItemKind.Function,
-            insertText: `${prefix}('$1')`,
-            insertTextRules:
-              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            detail: `${prefix} function`,
-            documentation: `Insert ${prefix}() function with field parameter`,
-          }));
-
-          return { suggestions: prefixSuggestions };
-        }
-
-        return { suggestions: [] };
-      },
-    });
-  }
-
-  __registerCompletionProvider(): void {
-    monaco.languages.registerCompletionItemProvider('customLanguage', {
-      triggerCharacters: ["'"], // Trigger suggestions when typing a single quote
-      provideCompletionItems: (model, position) => {
-        const lineContent = model.getLineContent(position.lineNumber);
-
-        // Create dynamic regex pattern from the array
-        const prefixPattern = this.allowedPrefixes.join('|');
-        const regex = new RegExp(`(${prefixPattern})\\('([^']*)'?`, 'g');
-        const match = lineContent.match(regex);
-
-        if (match) {
-          const suggestions = this.allFields.map((field: any) => ({
-            label: field.name,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: field.name,
-            detail: field.value,
-          }));
-
-          return { suggestions };
-        }
-
-        return { suggestions: [] };
-      },
-    });
-  }
-
-  _registerCompletionProvider(): void {
-    monaco.languages.registerCompletionItemProvider('customLanguage', {
-      triggerCharacters: ["'"], // Trigger suggestions when typing a single quote
-      provideCompletionItems: (model, position) => {
-        const lineContent = model.getLineContent(position.lineNumber);
-        const regex = /GET\('([^']*)'?/g; // Match GET('...') up to the cursor position
-        const match = lineContent.match(regex);
-
-        if (match) {
-          // Generate suggestions from fieldsValidWithData
-          // const suggestions = this.fieldsValidWithData.map((field: any) => ({
-          const suggestions = this.allFields.map((field: any) => ({
-            label: field.name,
-            kind: monaco.languages.CompletionItemKind.Variable, // Suggestion type
-            insertText: field.name, // Text to insert
-            detail: field.value, // Additional info about the field
-          }));
-
-          return { suggestions };
-        }
-
-        return null;
-        return { suggestions: [] }; // No suggestions if not inside GET('')
+        return { suggestions: prefixSuggestions };
       },
     });
   }
