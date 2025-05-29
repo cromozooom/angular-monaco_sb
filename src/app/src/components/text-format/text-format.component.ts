@@ -27501,6 +27501,7 @@ export class TextFormatComponent implements OnInit, OnDestroy {
   ];
   allFields: any = [];
 
+  private allowedPrefixes = ['GET', 'PUT', 'SOLOPX'];
   private currentDecorations: string[] = []; // Track current decorations
   private resizeObserver!: () => void;
   private editorInstance!: monaco.editor.IStandaloneCodeEditor;
@@ -27655,8 +27656,87 @@ export class TextFormatComponent implements OnInit, OnDestroy {
       },
     });
   }
-
   registerCompletionProvider(): void {
+    monaco.languages.registerCompletionItemProvider('customLanguage', {
+      triggerCharacters: ["'", ' '], // Trigger on quote and space
+      provideCompletionItems: (model, position) => {
+        const lineContent = model.getLineContent(position.lineNumber);
+        const textBeforeCursor = lineContent.substring(0, position.column - 1);
+
+        // Check if cursor is inside quotes after a prefix
+        const prefixPattern = this.allowedPrefixes.join('|');
+        const insideQuotesRegex = new RegExp(
+          `(${prefixPattern})\\('([^']*)'?$`
+        );
+        const insideQuotesMatch = textBeforeCursor.match(insideQuotesRegex);
+
+        if (insideQuotesMatch) {
+          // User is typing inside quotes - show field suggestions
+          const suggestions = this.allFields.map((field: any) => ({
+            label: field.name,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: field.name,
+            detail: field.value,
+            documentation: `Schema: ${field.schemaName}`,
+          }));
+
+          return { suggestions };
+        }
+
+        // Check if we should show prefix suggestions
+        // This covers cases like: empty line, after space, after operators, etc.
+        const shouldShowPrefixes = /(\s|^|[^a-zA-Z0-9_])$/.test(
+          textBeforeCursor
+        );
+
+        if (shouldShowPrefixes) {
+          // Show prefix suggestions (GET, PUT, SOLOPX)
+          const prefixSuggestions = this.allowedPrefixes.map((prefix) => ({
+            label: prefix,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: `${prefix}('$1')`,
+            insertTextRules:
+              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: `${prefix} function`,
+            documentation: `Insert ${prefix}() function with field parameter`,
+          }));
+
+          return { suggestions: prefixSuggestions };
+        }
+
+        return { suggestions: [] };
+      },
+    });
+  }
+
+  __registerCompletionProvider(): void {
+    monaco.languages.registerCompletionItemProvider('customLanguage', {
+      triggerCharacters: ["'"], // Trigger suggestions when typing a single quote
+      provideCompletionItems: (model, position) => {
+        const lineContent = model.getLineContent(position.lineNumber);
+
+        // Create dynamic regex pattern from the array
+        const prefixPattern = this.allowedPrefixes.join('|');
+        const regex = new RegExp(`(${prefixPattern})\\('([^']*)'?`, 'g');
+        const match = lineContent.match(regex);
+
+        if (match) {
+          const suggestions = this.allFields.map((field: any) => ({
+            label: field.name,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: field.name,
+            detail: field.value,
+          }));
+
+          return { suggestions };
+        }
+
+        return { suggestions: [] };
+      },
+    });
+  }
+
+  _registerCompletionProvider(): void {
     monaco.languages.registerCompletionItemProvider('customLanguage', {
       triggerCharacters: ["'"], // Trigger suggestions when typing a single quote
       provideCompletionItems: (model, position) => {
@@ -27706,14 +27786,19 @@ export class TextFormatComponent implements OnInit, OnDestroy {
   }
 
   highlightVariables(code: string): void {
-    const regex = /GET\('([^']+)'\)/g;
+    const prefixPattern = this.allowedPrefixes.join('|');
+    const regex = new RegExp(`(${prefixPattern})\\('([^']*)'?`, 'g');
     const decorations: monaco.editor.IModelDeltaDecoration[] = [];
     let match;
 
     while ((match = regex.exec(code)) !== null) {
-      const variable = match[1]; // Extract the variable inside GET('...')
-      const startIndex = match.index + 5; // Start index of the variable
-      const endIndex = startIndex + variable.length; // End index of the variable
+      const prefix = match[1]; // The prefix (GET, PUT, etc.)
+      const variable = match[2]; // Extract the variable inside quotes - THIS WAS THE BUG
+
+      // Calculate the correct start index for the variable
+      const prefixLength = prefix.length + 2; // prefix + "('
+      const startIndex = match.index + prefixLength;
+      const endIndex = startIndex + variable.length;
 
       const startPosition = this.editorInstance
         .getModel()
@@ -27735,21 +27820,20 @@ export class TextFormatComponent implements OnInit, OnDestroy {
             inlineClassName: this.fieldsValidWithData.some(
               (field: any) => field.name === variable
             )
-              ? 'text-bg-success' // Apply the .valid class if the variable is valid
+              ? 'text-bg-success'
               : !this.fieldsValidWithData.some(
                   (field: any) => field.name === variable
                 ) &&
                 this.otherFieldsValidWithData.some(
                   (otherField: any) => otherField.name === variable
                 )
-              ? 'text-bg-warning' // Apply the .warning class if found only in otherFieldsValidWithData
-              : 'text-bg-danger', // Apply the .danger class if not found in fieldsValidWithData or otherFieldsValidWithData
+              ? 'text-bg-warning'
+              : 'text-bg-danger',
           },
         });
       }
     }
 
-    // Update decorations only if they have changed
     this.currentDecorations = this.editorInstance.deltaDecorations(
       this.currentDecorations,
       decorations
