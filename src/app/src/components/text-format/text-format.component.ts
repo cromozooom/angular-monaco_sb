@@ -27501,7 +27501,7 @@ export class TextFormatComponent implements OnInit, OnDestroy {
   ];
   allFields: any = [];
 
-  private allowedPrefixes = ['GET', 'PUT', 'SOLOPX'];
+  allowedPrefixes = ['GET', 'PUT', 'SOLOPX'];
   private currentDecorations: string[] = []; // Track current decorations
   private resizeObserver!: () => void;
   private editorInstance!: monaco.editor.IStandaloneCodeEditor;

@@ -9,7 +9,7 @@
   <div class="flex-grow-1 d-flex overflow-hidden">
     <div class="w-50 flex-grow-1 overflow-hidden">
       <div class="d-flex overflow-hidden h-100">
-        <div class="w-50 h-100 overflow-hidden">
+        <div class="min-w-33 h-100 overflow-hidden">
           <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
             <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
               >Current form</strong
@@ -23,7 +23,7 @@
             </ul>
           </div>
         </div>
-        <div class="w-50 h-100 overflow-hidden">
+        <div class="min-w-33 h-100 overflow-hidden">
           <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
             <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
               >Other forms</strong
@@ -32,6 +32,20 @@
               <li *ngFor="let field of otherFieldsValidWithData">
                 <span class="rounded px-2 text-bg-light">
                   {{ field.name }}
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="min-w-33 h-100 overflow-hidden">
+          <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
+            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
+              >FUNCT</strong
+            >
+            <ul class="list-unstyled">
+              <li *ngFor="let pref of allowedPrefixes">
+                <span class="rounded px-2 text-bg-light">
+                  {{ pref }}
                 </span>
               </li>
             </ul>
