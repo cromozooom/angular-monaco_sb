@@ -4,3 +4,7 @@ $font-family-sans-serif: "Arial", sans-serif;
 
 // // Import Bootstrap
 @use "../node_modules/bootstrap/scss/bootstrap";
+
+.min-w-33 {
+  min-width: 33.333333%;
+}
