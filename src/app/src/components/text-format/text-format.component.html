@@ -1,3 +1,4 @@
+@if( dev) {
 <div class="w-100 h-100 overflow-hidden d-flex flex-column">
   <div class="border-bottom">
     <div class="d-flex gap-2 p-2">
@@ -11,9 +12,7 @@
       <div class="d-flex overflow-hidden h-100">
         <div class="min-w-33 h-100 overflow-hidden">
           <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
-            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
-              >Current form</strong
-            >
+            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm">Current form</strong>
             <ul class="list-unstyled">
               <li *ngFor="let field of fieldsValidWithData">
                 <span class="rounded px-2 text-bg-light">
@@ -25,9 +24,7 @@
         </div>
         <div class="min-w-33 h-100 overflow-hidden">
           <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
-            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
-              >Other forms</strong
-            >
+            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm">Other forms</strong>
             <ul class="list-unstyled">
               <li *ngFor="let field of otherFieldsValidWithData">
                 <span class="rounded px-2 text-bg-light">
@@ -39,9 +36,7 @@
         </div>
         <div class="min-w-33 h-100 overflow-hidden">
           <div class="d-flex flex-column gap-2 w-100 h-100 overflow-auto">
-            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm"
-              >FUNCT</strong
-            >
+            <strong class="p-2 border-bottom sticky-top bg-white shadow-sm">FUNCT</strong>
             <ul class="list-unstyled">
               <li *ngFor="let pref of allowedPrefixes">
                 <span class="rounded px-2 text-bg-light">
@@ -55,8 +50,20 @@
     </div>
     <div class="w-50 flex-grow-1 p-2 d-flex">
       <div class="w-100 flex-grow-1">
-        <div class="editor-container w-100 h-100" #editorContainer></div>
+        <ng-container *ngTemplateOutlet="editorTemplate"></ng-container>
       </div>
     </div>
   </div>
 </div>
+
+} @else {
+<div class="w-100 h-100 overflow-hidden d-flex flex-column">
+  <label for="">{{ title }}</label>
+  <ng-container *ngTemplateOutlet="editorTemplate"></ng-container>
+</div>
+}
+
+<!-- Define the reusable template -->
+<ng-template #editorTemplate>
+  <div class="editor-container w-100 h-100" #editorContainer></div>
+</ng-template>
